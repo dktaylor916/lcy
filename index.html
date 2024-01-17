@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>London City Airport</title>
+<meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+<link href="https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.css" rel="stylesheet">
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@100;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+body { margin: 0; padding: 0; }
+#map { position: absolute; top: 0; bottom: 0; width: 100%; }
+
+
+#poi-info { position: absolute; bottom: 0; z-index: 100;right: 0; width: 20%; height: 70vh; padding: 10px; background-color: white; transition: all .5s;font-family: Poppins;
+      background: linear-gradient(to bottom, #02F746, #00BCFF 20%, white 30%);}
+   
+      #poi-info.hidden {width: 20%; height: 5vh; padding: 10px; font-size: 1em; ; }
+    .center {
+
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 100%;
+        max-height: 100%;
+        display: block; 
+ 
+    }
+    .opening-times{
+      font-size: .8em;
+      text-align: center;
+    }
+    
+    h1{
+      color:white;
+      font-size: 3vw;
+      height: 2.3em; 
+    font-family:Poppins;
+    }
+    h2{
+      color:white;
+      font-size: 2vw;
+      
+    height: 2.3em; 
+    font-family:Poppins;
+    }
+    h4{
+      color:black;
+      font-size: 1vw;
+      font-family:Poppins;
+    }
+    p{
+      font-size: .8em;
+      text-align: left;
+      font-family:Poppins;
+    }
+    #overlay-image {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 20vh;
+        margin:20px;
+    }
+</style>
+</head>
+<body>
+    <div id="poi-info" class="hidden">
+
+        Select a POI to see details.
+        
+      </div>
+<div id="map-container">
+        <div id="map"></div>
+        <img id="overlay-image" src="logo.png" onclick="resetMap()" alt="Logo">
+    </div>
+    
+<script>
+	mapboxgl.accessToken = 'pk.eyJ1Ijoic3BhdGlhbGRlc2lnbmh1YiIsImEiOiJja216MGF5aDQwOTk1MnRwa3lzZWxzajVzIn0.xNma3vLd6Xad13rSCJXcFw';
+    const map = new mapboxgl.Map({
+        container: 'map', // container ID
+        center: [0.048728,51.5038], // starting position [lng, lat]
+        zoom: 17,
+        minZoom:17,
+        bearing:2,
+        style:'mapbox://styles/spatialdesignhub/clrg968qg00gg01pe8ftw9ntz'
+    });
+map.on('load', () => {
+    map.addSource('filt', {
+        type: 'geojson',
+        data: 'filt.geojson'
+        });
+        map.addSource('background', {
+        type: 'geojson',
+        data: 'background_final_v2.geojson'
+        });
+        map.addSource('buildings', {
+        type: 'geojson',
+        data: 'building_final_v5.geojson'
+        });
+        
+        map.addSource('room', {
+        type: 'geojson',
+        data: 'room_final_v2.geojson'
+        });
+        
+        map.addSource('poi-source', {
+        type: 'geojson',
+        data: 'poi.geojson'
+        });
+        map.addSource('label-source', {
+        type: 'geojson',
+        data: 'labels.geojson'
+        });
+
+
+
+        map.addLayer({
+        'id': 'filt-layer',
+        'type': 'fill',
+        'source': 'filt',
+        'paint': {
+        'fill-color':'white',
+        'fill-opacity':.05
+        }
+        });
+        map.addLayer({
+        'id': 'background-layer',
+        'type': 'fill',
+        'source': 'background',
+        'paint': {
+        'fill-color':'grey',
+        'fill-outline-color':'red'
+        }
+        });
+
+        map.addLayer({
+        'id': 'room-layer',
+        'type': 'fill',
+        'source': 'room',
+        'paint': {
+        'fill-color':'#fafafa'
+        }
+        });
+
+        map.addLayer({
+    'id': 'buildings-layer',
+    'type': 'fill-extrusion',
+    'source': 'buildings',
+    'paint': {
+        'fill-extrusion-color': 
+    
+        [
+            'match',
+            ['get', 'color'], // property to match
+            0, '#c8cee2',      // if 'id' is 1, fill color is red
+            1, '#d4d7dd',
+            2,'#a8b7d4' ,
+            3,'#d4d8e5',
+            4,'#f6f6fa',
+            5,'#e8e8e8'  , // if 'id' is 2, fill color is green
+            'blue'         // default fill color for other cases
+        ],
+        
+       
+    }
+});
+
+map.addLayer({
+    'id':'poi',
+    'type':'symbol',
+    'source': 'poi-source',
+    layout:{'icon-allow-overlap': true,
+        "icon-image":[
+            "case",
+            ["==",["get",'type'], 'swiss'],
+            "swiss",
+            ["==",["get",'type'], 'ba'],
+            "ba",
+            ["==",["get",'type'], 'lux'],
+            "lux",
+            ["==",["get",'type'], 'cityjet'],
+            "cityjet",
+            ["==",["get",'type'], 'ita'],
+            "ita",
+            ["==",["get",'type'], 'klm'],
+            "klm",
+            ["==",["get",'type'], 'pret'],
+            "pret",
+            ["==",["get",'type'], 'atm'],
+            "atm",
+            ["==",["get",'type'], 'food'],
+            "food",
+            ["==",["get",'type'], 'info'],
+            "info",
+            ["==",["get",'type'], 'stairs'],
+            "stairs",
+            ["==",["get",'type'], 'elevator'],
+            "elavator",
+            ["==",["get",'type'], 'mens'],
+            "men",
+            ["==",["get",'type'], 'womens'],
+            "women",
+            ["==",["get",'type'], 'whsmith'],
+            "whsmith",
+           'ba'
+        ],
+        'icon-size':[
+            'case',
+            ['==',['get','type'],'whsmith'],
+            .5,
+            1
+        ]
+    },
+    paint:{
+        'icon-opacity':[
+'interpolate',
+// Set the exponential rate of change to 0.5
+['exponential', 0.5],
+['zoom'],
+
+
+17,
+0,
+
+18.5,
+1,
+]
+    }
+})
+
+
+map.addLayer({
+    'id':'label',
+    'type':'symbol',
+    'source': 'label-source',
+    'layout': {
+'text-field': [
+    "case",
+    ['==',['get','type'],'dept'],
+    'Departures\nLevel 0',
+    'Check-In\nLevel 0'
+],
+'text-variable-anchor': ['top', 'bottom', 'left', 'right'],
+'text-radial-offset': 0.5,
+'text-justify': 'auto',
+'text-font': ['Poppins Bold']
+
+},
+    paint:{
+        'text-opacity':[
+'interpolate',
+// Set the exponential rate of change to 0.5
+['exponential', 0.5],
+['zoom'],
+
+
+17,
+1,
+
+18.5,
+0,
+]
+    }
+})
+
+
+map.setPaintProperty('buildings-layer', 'fill-extrusion-color', [
+'interpolate',
+// Set the exponential rate of change to 0.5
+['exponential', 0.5],
+['zoom'],
+// When zoom is 15, buildings will be beige.
+17,
+[
+            'match',
+            ['get', 'color'], // property to match
+            0, '#c8cee2',      // if 'id' is 1, fill color is red
+            1, '#d4d7dd',
+            2,'#a8b7d4' ,
+            3,'#d4d8e5',
+            4,'#cecece',
+            5,'#e8e8e8'  , // if 'id' is 2, fill color is green
+            'blue'         // default fill color for other cases
+        ],
+// When zoom is 18 or higher, buildings will be yellow.
+18.5,
+[
+            'match',
+            ['get', 'gid'], // property to match
+            1, '#75ad69',      // if 'id' is 1, fill color is red
+            9, '#75ad69',
+            4,'#9279b0' ,
+            2,'#9279b0',
+            32,'#f9cb64' ,[
+            'match',
+            ['get', 'color'], // property to match
+            0, '#c8cee2',      // if 'id' is 1, fill color is red
+            1, '#d4d7dd',
+            2,'#a8b7d4' ,
+            3,'#d4d8e5',
+            4,'#cecece',
+            5,'#e8e8e8'  , // if 'id' is 2, fill color is green
+            'blue'         // default fill color for other cases
+        ]
+             // if 'id' is 2, fill color is green
+                  // default fill color for other cases
+        ],
+]);
+ 
+      
+    });
+
+map.on('click', 'room-layer', function (e) {
+    
+    map.flyTo({
+        center: {lng: 0.04985200231976705, lat: 51.50348331186109},
+        zoom: 19,
+        essential: true,
+        pitch: 40, // set the pitch (angle of the camera)
+       
+    });
+});
+
+map.on('click', 'buildings-layer', function (e) {
+    map.flyTo({
+        center: {lng: 0.04985200231976705, lat: 51.50348331186109},
+        zoom: 19,
+        essential: true,pitch: 40, // set the pitch (angle of the camera)
+        
+    });
+});
+
+map.on('click', async function(e) {
+   
+    if(map.getZoom() < 18){
+        return
+    }
+    else{
+    var poiInfoElement = document.getElementById('poi-info');
+    var poiImageElement = document.getElementById('poi-image');
+        let l = map.getStyle().layers;
+        
+        
+        var features = map.queryRenderedFeatures(e.point, {
+          layers: ['poi']
+        });
+
+        if (features.length > 0) {
+          
+        
+        var type = features[0].properties.cat 
+    if (['Bathroom','stairs'].includes(type)){
+        return
+    }
+    
+
+
+       
+
+    if (features[0].properties.weektimes){
+    var weekday = features[0].properties.weektimes
+    var weekend = features[0].properties.wendtimes.split(',')}
+    else{
+    var weekday = ''
+    var weekend = ['','']
+    }
+
+    if(features[0].properties.descript){
+    var description = features[0].properties.descript}
+    else{
+        var description = ''
+    }
+
+    if(features[0].properties.img){
+    var img = features[0].properties.img}
+    else{
+        var img = ''
+    }
+
+      poiInfoElement.innerHTML =   `<div class="search-result">
+    <h2>${features[0].properties.name}</h2>
+    <h4>${type}</h4>
+    <img class="center" id="poi-image" src="img/${img}" alt="POI Image">
+    <ul class="opening-times">
+      ${weekday}
+      <br>
+      ${weekend[0]}
+      <br>
+      ${weekend[1]}
+    </ul>
+    
+    <p>${description} </p>
+  </div>`
+
+
+        
+        
+
+  
+          poiInfoElement.classList.remove('hidden'); // Show the poi-info element
+        } else {
+          poiInfoElement.innerHTML = '<br>Select a POI to see details.';
+          poiInfoElement.classList.add('hidden'); // Hide the poi-info element
+        }
+      }});
+
+      function resetMap(){
+        map.flyTo({
+            center: [0.048728,51.5038], // starting position [lng, lat]
+        zoom: 17,
+        pitch:0,
+        bearing:2
+        })
+      }
+
+</script>
+
+</body>
+</html>
