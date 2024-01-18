@@ -427,6 +427,8 @@ map.on('click', async function(e) {
         pitch:0,
         bearing:2
         })
+        document.getElementById('poi-info').innerHTML = '<br>Select a POI to see details.'
+        poiInfoElement.classList.add('hidden');
       }
       
 map.on('mouseenter', 'poi', () => {
